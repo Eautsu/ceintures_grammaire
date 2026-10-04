@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Ceinture Rose</title>
+<style>
+  :root {
+    --belt-color: #DB2777;
+    --belt-color-pale: color-mix(in srgb, var(--belt-color) 16%, white);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif;
+    background: #f4f4f4; height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    background: var(--belt-color-pale); padding: 14px 24px; display: flex;
+    align-items: center; justify-content: space-between; border-bottom: 3px solid var(--belt-color);
+  }
+  header h1 { margin: 0; font-size: 1.8rem; color: #1a1a1a; }
+  header a.home { text-decoration: none; color: #555; font-size: 1.3rem; margin-right: 14px; }
+  #progress-btn {
+    font-size: 1.5rem; font-weight: bold; background: white; border: 2px solid #1a1a1a;
+    border-radius: 24px; padding: 8px 22px; cursor: pointer;
+  }
+  #progress-btn:hover { background: #eee; }
+  #session-score { font-size: 1.1rem; font-weight: bold; color: #333; }
+  #btn-fin-seance {
+    font-size: 1rem; font-weight: bold; background: #2F3B52; color: white; border: none;
+    border-radius: 20px; padding: 8px 18px; cursor: pointer;
+  }
+  #btn-fin-seance:hover { filter: brightness(1.2); }
+  #btn-mode {
+    font-size: 1rem; font-weight: bold; background: white; color: #333;
+    border: 2px solid #999; border-radius: 20px; padding: 7px 16px; cursor: pointer;
+  }
+  #btn-mode.teacher { background: #2E8B57; color: white; border-color: #2E8B57; }
+  #btn-correction:disabled {
+    background: #ccc; color: #777; cursor: not-allowed; filter: none;
+  }
+  main {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; text-align: center; position: relative;
+  }
+  #carte-indicator {
+    font-size: 2.2rem; font-weight: 900; color: var(--belt-color);
+    background: var(--belt-color-pale); border: 3px solid var(--belt-color);
+    border-radius: 14px; padding: 14px 36px; margin-bottom: 40px; letter-spacing: 0.03em;
+  }
+  #palier-label { font-size: 1.5rem; color: var(--belt-color); font-weight: bold; margin-bottom: 44px; text-transform: uppercase; }
+  #calc-area { font-size: 4rem; font-weight: bold; color: #1a1a1a; margin-bottom: 56px; }
+  .rappel-tag { font-size: 1.4rem; color: #0B5FA5; font-style: italic; display: block; margin-top: 14px; }
+  .belt-origin-tag {
+    display: inline-block; font-size: 0.9rem; font-weight: bold; color: white;
+    border-radius: 20px; padding: 3px 14px; margin-left: 14px; vertical-align: middle;
+    text-transform: none;
+  }
+
+  #btn-correction {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: var(--belt-color); color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-correction:hover { filter: brightness(0.92); }
+  #btn-verifier {
+    font-size: 1.5rem; padding: 14px 32px; border-radius: 10px; border: none;
+    background: #2E8B57; color: white; cursor: pointer; font-weight: bold;
+  }
+  #btn-verifier:hover { filter: brightness(0.92); }
+  #feedback-msg {
+    font-size: 1.4rem; font-weight: bold; min-height: 2.2rem; margin-bottom: 8px;
+  }
+  #feedback-msg.ok { color: #2E8B57; }
+  #feedback-msg.ko { color: #C0392B; }
+  input.digit-input, input.line-input {
+    font-family: inherit; font-weight: bold; text-align: center; border-radius: 6px;
+    border: 2px solid #999;
+  }
+  input.digit-input.correct, input.line-input.correct, input.carry-input.correct, input.cassage-input.correct { background: #DFF3E1; border-color: #2E8B57; }
+  input.digit-input.incorrect, input.line-input.incorrect, input.carry-input.incorrect, input.cassage-input.incorrect { background: #FBE0DE; border-color: #C0392B; }
+
+  nav.arrows { display: flex; justify-content: space-between; align-items: center; padding: 14px 30px; }
+  nav.arrows button {
+    width: 60px; height: 60px; border-radius: 50%; border: 2px solid #1a1a1a; background: white;
+    font-size: 1.8rem; cursor: pointer;
+  }
+  nav.arrows button:hover { background: #eee; }
+  nav.arrows span { font-size: 1.15rem; color: #555; }
+
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 10; }
+  #overlay.show { display: flex; }
+  #picker { background: white; border-radius: 12px; padding: 28px 32px; max-width: 90vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,0.25); }
+  #picker h2 { margin: 0 0 18px 0; font-size: 1.5rem; color: var(--belt-color); font-weight: bold; }
+  #picker-jump { display: flex; gap: 10px; margin-bottom: 20px; }
+  #picker-input { flex: 1; min-width: 260px; padding: 10px 14px; font-size: 1rem; border: 2px solid var(--belt-color); border-radius: 8px; }
+  #picker-go { padding: 10px 22px; font-size: 1rem; font-weight: bold; cursor: pointer; background: var(--belt-color); color: white; border: none; border-radius: 8px; }
+  #picker-go:hover { filter: brightness(0.92); }
+  #picker-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; margin-bottom: 22px; }
+  #picker-grid button { padding: 10px 0; border: 2px solid var(--belt-color); border-radius: 10px; background: white; color: var(--belt-color); font-weight: bold; font-size: 1rem; cursor: pointer; }
+  #picker-grid button:hover { background: var(--belt-color-pale); }
+  #picker-grid button.current { background: var(--belt-color); color: white; }
+  #picker-close { background: #8a8a8a; color: white; border: none; border-radius: 8px; padding: 10px 22px; font-size: 1rem; cursor: pointer; }
+  #picker-close:hover { background: #767676; }
+  
+  #carte-indicator { font-size: 1.5rem; padding: 8px 26px; margin-bottom: 14px; }
+  #palier-label { font-size: 1.2rem; margin-bottom: 18px; }
+  #calc-area { font-size: 1.6rem; font-weight: normal; margin-bottom: 28px; width: 100%; max-width: 1180px; }
+  main { justify-content: flex-start; padding-top: 22px; }
+  .g-card { text-align: left; }
+  .g-cons { font-size: 1.45rem; font-weight: bold; margin: 0 auto 18px auto; max-width: 1050px; line-height: 1.35; }
+  .g-bank { font-size: 1.4rem; margin: 0 auto 18px auto; max-width: 1050px; }
+  .g-bank span { display: inline-block; border: 2px dashed var(--belt-color); border-radius: 8px; padding: 2px 12px; margin: 4px 6px; background: white; font-weight: bold; }
+  .g-items { display: flex; flex-direction: column; gap: 16px; max-width: 1050px; margin: 0 auto; }
+  .g-item { flex-direction: row !important; align-items: flex-start !important; gap: 14px; background: white;
+            border: 2px solid #e2e2e2; border-radius: 12px; padding: 14px 18px; }
+  .g-item.ok { border-color: #2E8B57; }
+  .g-item.ko { border-color: #C0392B; }
+  .g-items.single .g-item { padding: 18px 22px; }
+  .item-label { flex: none; margin-top: 4px; }
+  .item-label.wide { display: inline-flex !important; width: auto !important; min-width: 2.6rem; padding: 0 8px; border-radius: 12px !important; }
+  .item-label.correct { color: #2E8B57; border-color: #2E8B57; background: #DFF3E1; }
+  .item-label.incorrect { color: #C0392B; border-color: #C0392B; background: #FBE0DE; }
+  .item-label {
+    font-size: 1rem; font-weight: bold; color: #999; width: 1.8rem; height: 1.8rem; border-radius: 50%;
+    border: 2px solid #ccc; display: flex; align-items: center; justify-content: center;
+  }
+  .g-body { flex: 1; min-width: 0; }
+  .g-q { font-size: 1.7rem; line-height: 1.5; margin-bottom: 10px; }
+  .g-src { color: #333; }
+  .g-ul { text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 5px; }
+  .g-sublabel { font-size: 1.1rem; font-weight: bold; color: #555; margin: 4px 0 8px 0; }
+  .g-hint { font-size: 1.05rem; color: #666; font-style: italic; margin: 4px 0 8px 0; }
+  .g-hint1 { font-size: 1.05rem; color: #555; margin-bottom: 8px; }
+  .g-del { font-weight: 900; color: #C0392B; text-decoration: line-through; text-decoration-thickness: 3px; background: #FBE0DE; border-radius: 3px; padding: 0 1px; }
+  .g-list { font-size: 1.6rem; line-height: 1.6; margin: 0 0 12px 0; padding-left: 2.2rem; }
+  .g-list li.good { color: #1F6B3A; font-weight: bold; }
+  .g-list li.bad { color: #777; }
+  .g-whyin { font-size: 1.05rem; font-style: italic; color: #C0392B; font-weight: normal; }
+  .g-assocpool { margin: 0 auto 16px auto; max-width: 1050px; padding: 10px; border: 2px dashed var(--belt-color); border-radius: 12px; background: white; min-height: 3.4rem; }
+  .g-dragtile { display: inline-block; font-size: 1.6rem; padding: 6px 16px; margin: 4px; border: 2px solid #C0392B; border-radius: 10px; background: #fff; cursor: grab; user-select: none; }
+  .g-dragtile.picked { background: #FBE0DE; box-shadow: 0 0 0 3px #C0392B55; }
+  .g-assocline { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .g-drop { display: inline-block; min-width: 12rem; min-height: 2.6rem; padding: 4px 14px; border: 3px dashed #bbb; border-radius: 10px; color: #aaa; cursor: pointer; }
+  .g-drop.over { border-color: var(--belt-color); background: var(--belt-color-pale); }
+  .g-drop.filled { border: 3px solid #C0392B; color: #1a1a1a; background: white; }
+  .g-drop.good { border-color: #2E8B57; background: #DFF3E1; color: #1F6B3A; }
+  .g-drop.bad { border-color: #C0392B; background: #FBE0DE; }
+  .g-opt.used { color: #aaa; border-style: dashed; background: #f3f3f3; cursor: not-allowed; }
+  .g-opt.used .g-optw, .g-bank span.used { text-decoration: line-through; text-decoration-thickness: 2px; color: #aaa; }
+  .g-usedtag { display: block; font-size: 0.8rem; text-decoration: none; color: #888; font-style: italic; }
+  .g-ins { font-weight: 900; color: #0B5A2A; background: #C9EBCF; border-radius: 3px; padding: 0 1px; }
+  .g-text-corr .g-model, .g-model.diff { font-weight: normal; }
+  .g-model { font-size: 1.7rem; font-weight: bold; color: #1F6B3A; background: #EAF6EC; border-radius: 8px; padding: 8px 14px; display: inline-block; }
+  .g-why { font-size: 1.15rem; color: #444; margin: 10px 0 0 0; }
+  .g-opts { display: flex; flex-wrap: wrap; gap: 10px; }
+  .g-opts.wide { flex-direction: column; align-items: stretch; }
+  .g-opt { font-size: 1.45rem; padding: 10px 20px; border-radius: 10px; border: 2px solid #9a9a9a; background: white; cursor: pointer; text-align: left; font-family: inherit; }
+  .g-opt:hover:not(:disabled) { background: #f0f0f0; }
+  .g-opt.selected { border-color: var(--belt-color); background: var(--belt-color-pale); font-weight: bold; }
+  .g-opt.good { border-color: #2E8B57; background: #DFF3E1; font-weight: bold; }
+  .g-opt:disabled { cursor: default; color: #333; }
+  .g-blank { display: inline-block; min-width: 3.5rem; border-bottom: 3px solid var(--belt-color); text-align: center; color: #999; padding: 0 6px; }
+  .g-blank.filled { color: #1a1a1a; font-weight: bold; }
+  .g-blank.good { color: #1F6B3A; border-color: #2E8B57; font-weight: bold; }
+  input.g-text, textarea.g-text { font-size: 1.7rem; width: 100%; padding: 8px 12px; text-align: left; font-weight: normal; }
+  textarea.g-text { resize: vertical; line-height: 1.4; }
+  .g-palette { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .g-pen { font-size: 1.05rem; padding: 6px 12px; border-radius: 20px; border: 2px solid var(--pc); background: white; cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: inherit; }
+  .g-pen.active { background: var(--pc); color: white; font-weight: bold; }
+  .g-swatch { width: 14px; height: 14px; border-radius: 50%; background: var(--pc); border: 2px solid white; display: inline-block; }
+  .g-sent { font-size: 1.9rem; line-height: 2.6; }
+  .g-sent.tiles { line-height: 2.2; }
+  .g-w { cursor: pointer; padding: 0 3px; border-radius: 6px; position: relative; display: inline-block; line-height: 1.3; border-bottom: 4px solid transparent; }
+  .g-w.el { padding-right: 0; margin-right: -2px; }
+  .g-run { position: relative; display: inline-block; white-space: nowrap; }
+  .g-run .g-w.tagged:not(.ring) { border-radius: 0; }
+  .g-run.line { border-bottom: 4px solid var(--tc); line-height: 1.3; }
+  .g-run.line .g-w.tagged { border-bottom-color: transparent; }
+  .g-run.box { border: 3px solid var(--tc); border-radius: 6px; padding: 0 2px; line-height: 1.3; }
+  .g-run.box .g-w.tagged { border-bottom-color: transparent; }
+  .g-sent.mono { line-height: 1.9; }
+  .g-tag.compact { padding: 8px 16px; }
+  .g-w:hover { background: #f2f2f2; }
+  .g-w.tile { border: 2px solid #bbb; padding: 2px 12px; margin: 2px; background: white; }
+  .g-w.tagged { border-bottom-color: var(--tc); color: var(--tc); font-weight: bold; }
+  .g-w.tile.tagged { border-color: var(--tc); border-width: 3px; }
+  .g-w.ring { border: 3px solid var(--tc); border-radius: 50%; padding: 0 8px; }
+  .g-w.wrong { background: #FBE0DE; }
+  .g-tl { position: absolute; left: 50%; transform: translateX(-50%); top: 100%; margin-top: 2px; font-size: 0.8rem; font-weight: bold; white-space: nowrap; color: var(--tc); line-height: 1.1; }
+  .g-sent .g-run + .g-run, .g-sent .g-run { margin: 0 2px; }
+  .g-p { color: #444; }
+  .g-orderline { min-height: 3.6rem; border: 2px dashed var(--belt-color); border-radius: 10px; padding: 8px; margin-bottom: 12px; background: white; }
+  .g-placeholder { color: #999; font-size: 1.1rem; font-style: italic; }
+  .g-pool { min-height: 3rem; }
+  .g-tilebtn { font-size: 1.6rem; padding: 6px 16px; border-radius: 10px; border: 2px solid #888; background: #fafafa; cursor: pointer; margin: 4px; font-family: inherit; }
+  .g-tilebtn.placed { border-color: var(--belt-color); background: var(--belt-color-pale); }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;">
+    <a class="home" href="index.html" title="Retour à l'index">🏠</a>
+    <h1>Ceinture Rose</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <span id="session-score">Séance : 0/0</span>
+    <button id="btn-fin-seance">Terminer la séance</button>
+    <button id="btn-mode" title="Déverrouiller la correction libre">👤 Élève</button>
+    <button id="progress-btn">Carte 1 / 40</button>
+  </div>
+</header>
+<main>
+  <div id="carte-indicator"></div>
+  <div id="palier-label"></div>
+  <div id="calc-area"></div>
+  <div id="feedback-msg"></div>
+  <div style="display:flex; gap:28px; margin-top:8px;">
+    <button id="btn-verifier">Vérifier ma réponse</button>
+    <button id="btn-correction">Voir la correction (espace)</button>
+  </div>
+</main>
+<nav class="arrows">
+  <button id="prev">←</button>
+  <span>Flèches ← → au clavier, ou clique sur le numéro en haut</span>
+  <button id="next">→</button>
+</nav>
+
+<div id="overlay">
+  <div id="picker">
+    <h2>Aller à la carte...</h2>
+    <div id="picker-jump">
+      <input type="number" id="picker-input" min="1" placeholder="N° de carte (1-40)">
+      <button id="picker-go">Aller</button>
+    </div>
+    <div id="picker-grid"></div>
+    <button id="picker-close">Fermer</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Contenu specifique a la discipline (fourni par l'appelant) :
+// doit definir renderCard(items, showCorrection) -> HTML string, et checkCard(items) -> tableau de booleens
+// ============================================================
+
+// ---------------------------------------------------------------- outils
+let G = {sel:{}, tags:{}, cur:{}, ord:{}, asc:{}, pick:null};
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// ⟦mot⟧ = mot souligné sur la carte papier
+function fmt(s){
+  return esc(s).replace(/⟦([^⟧]*)⟧/g, '<u class="g-ul">$1</u>');
+}
+function norm(s){
+  return String(s)
+    .replace(/[’‘`´]/g, "'")
+    .replace(/[  ]/g, ' ')
+    .replace(/\.\.\./g, '…')
+    .replace(/\s+/g, ' ').trim()
+    .replace(/\s+([?!:;.,…])/g, '$1')
+    .replace(/'\s+/g, "'");
+}
+// tokens d'une phrase (élisions séparées, ponctuation à part), en minuscules
+function wordsOf(s){
+  return norm(s).replace(/'/g, "' ").replace(/([?!:;.,…])/g, ' $1').split(' ').filter(x => x).map(x => x.toLowerCase());
+}
+function isSubseq(small, big){
+  let j = 0;
+  for(let i = 0; i < big.length && j < small.length; i++){ if(big[i] === small[j]) j++; }
+  return j === small.length;
+}
+// assemble des tokens en texte lisible (pas d'espace après l', avant . , etc.)
+function joinToks(toks, render){
+  let out = '';
+  toks.forEach((t, k) => {
+    const prev = k > 0 ? toks[k-1].t : '';
+    const noSpace = k === 0 || /'$/.test(prev) || (!t.w && /^[.,…)]/.test(t.t)) || prev === '(' ;
+    const nbsp = !t.w && /^[?!:;]/.test(t.t);
+    out += (noSpace ? '' : (nbsp ? ' ' : ' ')) + render(t, k);
+  });
+  return out;
+}
+// corrigé : seuls les caractères ajoutés ou changés par rapport à l'énoncé
+// sont mis en gras (plus longue sous-suite commune, sensible à la casse)
+// Corrigé : on aligne mot à mot l'énoncé et la réponse. Un mot identique reste
+// normal ; un mot qui n'a changé que par sa fin (mur → murs, cassées → cassée,
+// horloge → horloges) ne voit marquer que la lettre ajoutée/retirée ; un mot
+// remplacé (des → une) est marqué en entier. Dans la réponse, les ajouts sont
+// en gras ; dans l'énoncé (option « strike »), les retraits sont barrés en rouge.
+function splitWords(s){
+  return String(s).replace(/'/g, "' ").split(' ').filter(x => x !== '');
+}
+function joinWords(parts){
+  let out = '';
+  parts.forEach((p, k) => { out += (k === 0 || /'$/.test(parts[k-1].raw) ? '' : ' ') + p.html; });
+  return out;
+}
+function charDiff(a, b, cls){
+  // marque dans b les caractères absents de a (plus longue sous-suite commune)
+  const n = a.length, m = b.length;
+  const L = Array.from({length: n + 1}, () => new Uint16Array(m + 1));
+  for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--)
+    L[i][j] = a[i] === b[j] ? L[i+1][j+1] + 1 : Math.max(L[i+1][j], L[i][j+1]);
+  let i = 0, j = 0, out = '', run = '';
+  const flush = () => { if(run){ out += `<b class="${cls}">${esc(run)}</b>`; run = ''; } };
+  while(j < m){
+    if(i < n && a[i] === b[j]){ flush(); out += esc(b[j]); i++; j++; }
+    else if(i < n && L[i+1][j] >= L[i][j+1]){ i++; }
+    else { run += b[j]; j++; }
+  }
+  flush();
+  return out;
+}
+function wordAlign(src, ans){
+  const A = splitWords(src), B = splitWords(ans);
+  const n = A.length, m = B.length;
+  const L = Array.from({length: n + 1}, () => new Uint16Array(m + 1));
+  for(let i = n - 1; i >= 0; i--) for(let j = m - 1; j >= 0; j--)
+    L[i][j] = A[i] === B[j] ? L[i+1][j+1] + 1 : Math.max(L[i+1][j], L[i][j+1]);
+  const ops = []; let i = 0, j = 0, ga = [], gb = [];
+  const flushGap = () => { if(ga.length || gb.length){ ops.push({gap: true, a: ga, b: gb}); ga = []; gb = []; } };
+  while(i < n || j < m){
+    if(i < n && j < m && A[i] === B[j]){ flushGap(); ops.push({gap: false, w: A[i]}); i++; j++; }
+    else if(j >= m || (i < n && L[i+1][j] >= L[i][j+1])){ ga.push(A[i]); i++; }
+    else { gb.push(B[j]); j++; }
+  }
+  flushGap();
+  return ops;
+}
+function related(x, y){
+  const a = x.toLowerCase(), b = y.toLowerCase();
+  let k = 0; while(k < a.length && k < b.length && a[k] === b[k]) k++;
+  // même mot à la terminaison près (mur/murs, aboie/aboient) : seule la fin est marquée ;
+  // sinon (chien/chiots, des/une) le mot entier est marqué
+  return k >= Math.max(3, Math.min(a.length, b.length) - 1);
+}
+function diffSide(src, ans, side){
+  // side 'ans' : réponse avec ajouts en gras ; side 'src' : énoncé avec retraits barrés
+  const parts = [];
+  wordAlign(src, ans).forEach(op => {
+    if(!op.gap){ parts.push({raw: op.w, html: esc(op.w)}); return; }
+    const mine = side === 'ans' ? op.b : op.a, other = side === 'ans' ? op.a : op.b;
+    const cls = side === 'ans' ? 'g-ins' : 'g-del';
+    mine.forEach((w, k) => {
+      // mot de même famille dans la zone modifiée (même position de préférence)
+      const o = (other[k] !== undefined && related(w, other[k])) ? other[k] : other.find(x => related(w, x));
+      if(o !== undefined) parts.push({raw: w, html: charDiff(o, w, cls)});
+      else parts.push({raw: w, html: `<b class="${cls}">${esc(w)}</b>`});
+    });
+  });
+  return joinWords(parts);
+}
+function diffSrcHtml(src, ans){ return diffSide(src, ans, 'src'); }
+function diffHtml(src, ans){
+  // majuscules / ponctuation (Blanche…) : diff caractère par caractère, plus lisible
+  if(splitWords(src).length === splitWords(ans).length || String(src).toLowerCase().replace(/[.?!,]/g, '') === String(ans).toLowerCase().replace(/[.?!,]/g, '')){
+    const sameShape = String(src).toLowerCase().replace(/[.?!,\s]/g, '') === String(ans).toLowerCase().replace(/[.?!,\s]/g, '');
+    if(sameShape) return charDiff(src, ans, 'g-ins');
+  }
+  return diffSide(src, ans, 'ans');
+}
+function lettre(i){ return ['A','B','C','D','E','F'][i] || String(i+1); }
+
+// ---------------------------------------------------------------- rendu
+function renderChoice(it, i, corr){
+  const sel = corr ? it.ans : G.sel[i];
+  let q = '';
+  if(!it.hideq && it.q){
+    let blank = '';
+    if(it.fill || it.punct){
+      const v = sel !== undefined ? esc(it.opts[sel]) : '…';
+      blank = `<span class="g-blank${sel !== undefined ? ' filled' : ''}${corr ? ' good' : ''}" id="g-blank-${i}">${v}</span>`;
+      const parts = it.q.split('…');
+      q = fmt(parts[0]).replace(/\s+$/, '') + (it.punct ? '' : ' ') + blank + (parts.length > 1 ? ' ' + fmt(parts.slice(1).join('…')).replace(/^\s+/, '') : '');
+      if(it.punct) q = fmt(parts[0]).replace(/\s+$/, '') + blank;
+    } else {
+      q = fmt(it.q);
+    }
+    q = `<div class="g-q">${q}</div>`;
+  }
+  const lab = it.label ? `<div class="g-sublabel">${esc(it.label)} :</div>` : '';
+  // banque à usage unique : un mot déjà placé dans une autre phrase est grisé
+  const usedBy = {};
+  if(it.unique && !corr){
+    G_ITEMS.forEach((o, k) => { if(k !== i && o.unique && G.sel[k] !== undefined) usedBy[G.sel[k]] = k; });
+  }
+  const btns = it.opts.map((o, j) => {
+    let cls = 'g-opt';
+    if(j === sel) cls += ' selected';
+    if(corr && (j === it.ans || (it.alt || []).includes(j))) cls += ' good';
+    const used = usedBy[j] !== undefined;
+    if(used) cls += ' used';
+    const dis = (corr || used) ? ' disabled' : '';
+    const tag = used ? `<span class="g-usedtag">déjà en ${lettre(usedBy[j])}</span>` : '';
+    return `<button class="${cls}" id="g-opt-${i}-${j}" onclick="gPick(${i},${j})"${dis}><span class="g-optw">${fmt(o)}</span>${tag}</button>`;
+  }).join('');
+  let extra = '';
+  if(corr && it.why && it.why.length){
+    extra = '<ul class="g-why">' + it.why.map(w => `<li>${fmt(w)}</li>`).join('') + '</ul>';
+  } else if(corr && it.show && !it.fill && !it.punct){
+    extra = `<div class="g-model">${fmt(it.show)}</div>`;
+  }
+  return `${q}${lab}<div class="g-opts${it.wide ? ' wide' : ''}">${btns}</div>${extra}`;
+}
+
+function renderTag(it, i, corr){
+  if(G.tags[i] === undefined){ G.tags[i] = it.toks.map(() => -1); G.cur[i] = 0; }
+  const tags = corr ? it.ans : G.tags[i];
+  let pal = '';
+  if(it.cats.length > 1 && !corr){
+    pal = '<div class="g-palette">' + it.cats.map((c, ci) =>
+      `<button class="g-pen${ci === G.cur[i] ? ' active' : ''}" id="g-pen-${i}-${ci}" style="--pc:${c.c}" onclick="gPen(${i},${ci})"><span class="g-swatch"></span>${esc(c.n)}</button>`
+    ).join('') + '</div>';
+  } else if(it.cats.length === 1 && !corr && !/clique/i.test((G_ITEMS[0] || {}).cons || '')){
+    const c = it.cats[0];
+    const b = `<b style="color:${c.c}">${esc(c.n)}</b>`;
+    const HINTS = {
+      'groupe sujet': `Clique sur chaque mot du ${b}.`,
+      'groupe verbal': `Clique sur chaque mot du ${b}.`,
+      'déterminant': `Clique sur chaque ${b}.`,
+      'adjectif': `Clique sur l'${b} (s'il y en a un).`,
+      'pronom sujet': `Clique sur le ${b}.`,
+      'verbe': `Clique sur le ${b}.`,
+    };
+    pal = `<div class="g-hint1">${HINTS[c.n] || ('Clique sur : ' + b)}</div>`;
+  }
+  // un mot = une étiquette cliquable ; les mots voisins de même catégorie
+  // forment un groupe souligné d'un seul trait, avec une seule légende
+  const word = (t, k) => {
+    if(!t.w) return `<span class="g-p">${esc(t.t)}</span>`;
+    const a = tags[k];
+    const c = a >= 0 ? it.cats[a] : null;
+    const style = c ? `style="--tc:${c.c}"` : '';
+    const cls = 'g-w' + (c ? ' tagged' : '') + (c && c.ring ? ' ring' : '') + (it.tiles ? ' tile' : '') + (/'$/.test(t.t) ? ' el' : '');
+    const click = corr ? '' : ` onclick="gTag(${i},${k})"`;
+    return `<span class="${cls}" id="g-w-${i}-${k}" ${style}${click}>${esc(t.t)}</span>`;
+  };
+  let body;
+  if(it.tiles){
+    body = it.toks.map((t, k) => {
+      const a = tags[k];
+      const lab = (a >= 0 && it.cats.length > 1) ? `<span class="g-tl">${esc(it.cats[a].n)}</span>` : '';
+      return `<span class="g-run" style="--tc:${a >= 0 ? it.cats[a].c : '#999'}">${word(t, k)}${lab}</span>`;
+    }).join(' ');
+  } else {
+    // regroupe les tokens en « runs » : suite de mots de même catégorie (≥ 0)
+    const runs = [];
+    it.toks.forEach((t, k) => {
+      const a = t.w ? tags[k] : -2;
+      const last = runs[runs.length - 1];
+      if(last && a >= 0 && last.a === a && !(it.cats[a] && it.cats[a].ring)) last.ks.push(k);
+      else runs.push({a, ks: [k]});
+    });
+    body = '';
+    runs.forEach((r, ri) => {
+      const k0 = r.ks[0];
+      const prev = k0 > 0 ? it.toks[k0 - 1].t : '';
+      const t0 = it.toks[k0];
+      const noSpace = k0 === 0 || /'$/.test(prev) || (!t0.w && /^[.,…)]/.test(t0.t));
+      const nbsp = !t0.w && /^[?!:;]/.test(t0.t);
+      const inner = joinToks(r.ks.map(k => it.toks[k]), (t, j) => word(t, r.ks[j]));
+      let html = inner;
+      if(r.a >= 0){
+        const c = it.cats[r.a];
+        const lab = it.cats.length > 1 ? `<span class="g-tl">${esc(c.n)}</span>` : '';
+        html = `<span class="g-run${c.ring ? ' ringrun' : (c.box ? ' box' : ' line')}" style="--tc:${c.c}">${inner}${lab}</span>`;
+      }
+      body += (noSpace ? '' : (nbsp ? '\u00a0' : ' ')) + html;
+    });
+  }
+  const q = it.q ? `<div class="g-sublabel">${esc(it.q)}</div>` : '';
+  return `${it.cats.length === 1 && it.q ? '' : q}${pal}<div class="g-sent${it.tiles ? ' tiles' : ''}${it.cats.length === 1 ? ' mono' : ''}">${body}</div>`;
+}
+
+function renderText(it, i, corr){
+  if(it.list){
+    // « Je copie la phrase correcte » : propositions affichées, l'élève recopie la bonne
+    const goodIdx = it.list.findIndex(o => it.ans.some(a => norm(a) === norm(o)));
+    const lis = it.list.map((o, j) => {
+      const cls = corr ? (j === goodIdx ? ' class="good"' : ' class="bad"') : '';
+      const why = (corr && it.why && it.why[j] && j !== goodIdx) ? ` <span class="g-whyin">— ${fmt(it.why[j])}</span>` : '';
+      return `<li${cls}>${esc(o)}${why}</li>`;
+    }).join('');
+    const list = `<ol class="g-list">${lis}</ol>`;
+    if(corr){
+      return `${list}<div class="g-model">${fmt(it.ans[0])}</div>`;
+    }
+    return `${list}<input type="text" class="line-input g-text" id="g-text-${i}" spellcheck="false" autocomplete="off" placeholder="Recopie ici la phrase correcte">`;
+  }
+  const q = !it.q ? '' : (corr && it.strike) ? `<div class="g-q g-src">${diffSrcHtml(it.q, it.ans[0])}</div>`
+                                 : `<div class="g-q g-src">${fmt(it.q)}</div>`;
+  const hint = it.hint ? `<div class="g-hint">${fmt(it.hint)}</div>` : '';
+  if(corr){
+    let others = '';
+    if(it.note) others = `<div class="g-hint">${fmt(it.note)}</div>`;
+    else if(it.ans.length > 1) others = `<div class="g-hint">Autres réponses possibles : ${it.ans.slice(1).map(fmt).join(' · ')}</div>`;
+    return `${q}${hint}<div class="g-model diff">${diffHtml(it.src || it.q, it.ans[0])}</div>${others}`;
+  }
+  const field = it.long
+    ? `<textarea class="line-input g-text long" id="g-text-${i}" rows="3" spellcheck="false" autocomplete="off"></textarea>`
+    : `<input type="text" class="line-input g-text" id="g-text-${i}" spellcheck="false" autocomplete="off">`;
+  return `${q}${hint}${field}`;
+}
+
+function renderOpen(it, i, corr){
+  // subj / grow : réponse ouverte, contrôlée par des règles
+  const step = it.step ? `<div class="g-sublabel">${esc(it.step)}</div>` : '';
+  const q = it.k === 'grow' && it.from !== undefined ? '' : `<div class="g-q g-src">${fmt(it.q)}</div>`;
+  if(corr){
+    return `${q}${step}<div class="g-model">${fmt(it.ans[0])}</div><div class="g-hint">Exemple de réponse — d'autres réponses sont possibles.</div>`;
+  }
+  return `${q}${step}<input type="text" class="line-input g-text" id="g-text-${i}" spellcheck="false" autocomplete="off">`;
+}
+
+function renderOrder(it, i, corr){
+  if(corr) return `<div class="g-model">${fmt(it.ans)}</div>`;
+  if(G.ord[i] === undefined) G.ord[i] = [];
+  const used = G.ord[i];
+  const line = used.length
+    ? used.map((tj, p) => `<button class="g-tilebtn placed" onclick="gUnTile(${i},${p})">${esc(it.tiles[tj])}</button>`).join(' ')
+    : '<span class="g-placeholder">Clique sur les étiquettes dans le bon ordre</span>';
+  const pool = it.tiles.map((t, j) => used.includes(j) ? '' :
+    `<button class="g-tilebtn" onclick="gTile(${i},${j})">${esc(t)}</button>`).join(' ');
+  return `<div class="g-orderline" id="g-orderline-${i}">${line}</div><div class="g-pool">${pool}</div>`;
+}
+
+// ---- association GS + GV (glisser-déposer, ou clic sur l'étiquette puis sur la case)
+function renderPool(items){
+  const used = Object.values(G.asc);
+  const tiles = items[0].opts.map((o, j) => used.includes(j) ? '' :
+    `<span class="g-dragtile${G.pick === j ? ' picked' : ''}" draggable="true" data-j="${j}"
+       ondragstart="gDragStart(event,${j})" onclick="gPickTile(${j})">${esc(o)}</span>`).join(' ');
+  return `<div class="g-pool g-assocpool" id="g-assocpool">${tiles || '<span class="g-placeholder">Toutes les étiquettes sont placées.</span>'}</div>`;
+}
+function renderAssoc(it, i, corr){
+  const j = corr ? it.ans : G.asc[i];
+  const filled = j !== undefined;
+  const good = corr || (filled && G.ascOk && G.ascOk[i] === true);
+  const zone = `<span class="g-drop${filled ? ' filled' : ''}${good ? ' good' : ''}" id="g-drop-${i}"
+      ondragover="event.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')"
+      ondrop="gDrop(event,${i})" onclick="gZoneClick(${i})">${filled ? esc(it.opts[j]) : 'GV ?'}</span>`;
+  const line = `<div class="g-q g-assocline"><b>${esc(it.gs)}</b> ${zone}</div>`;
+  if(corr) return `${line}<div class="g-model">${fmt(it.show)}</div>`;
+  return `${line}<input type="text" class="line-input g-text" id="g-text-${i}" spellcheck="false" autocomplete="off" placeholder="Je recopie la phrase complète">`;
+}
+function rerenderAssoc(){
+  const pool = document.getElementById('g-assocpool');
+  if(pool) pool.outerHTML = renderPool(G_ITEMS);
+  G_ITEMS.forEach((it, i) => {
+    if(it.k !== 'assoc') return;
+    const z = document.getElementById(`g-drop-${i}`);
+    if(z){
+      const tmp = document.createElement('div');
+      tmp.innerHTML = renderAssoc(it, i, false);
+      z.replaceWith(tmp.querySelector('.g-drop'));
+    }
+  });
+}
+function placeTile(i, j){
+  for(const k in G.asc){ if(G.asc[k] === j) delete G.asc[k]; }   // une étiquette = une seule case
+  G.asc[i] = j; G.pick = null;
+  if(G.ascOk) delete G.ascOk[i];
+  const blk = document.getElementById(`g-item-${i}`); if(blk) blk.classList.remove('ok', 'ko');
+  rerenderAssoc();
+}
+function gDragStart(e, j){ e.dataTransfer.setData('text/plain', String(j)); }
+function gDrop(e, i){ e.preventDefault(); const j = parseInt(e.dataTransfer.getData('text/plain')); if(!isNaN(j)) placeTile(i, j); }
+function gPickTile(j){ G.pick = (G.pick === j) ? null : j; rerenderAssoc(); }
+function gZoneClick(i){
+  if(G.pick !== null){ placeTile(i, G.pick); return; }
+  if(G.asc[i] !== undefined){ delete G.asc[i]; rerenderAssoc(); }   // reclic : l'étiquette retourne dans la réserve
+}
+
+function renderItem(it, i, corr){
+  if(it.k === 'assoc') return renderAssoc(it, i, corr);
+  if(it.k === 'choice') return renderChoice(it, i, corr);
+  if(it.k === 'tag') return renderTag(it, i, corr);
+  if(it.k === 'text') return renderText(it, i, corr);
+  if(it.k === 'order') return renderOrder(it, i, corr);
+  if(it.k === 'subj' || it.k === 'grow') return renderOpen(it, i, corr);
+  return '';
+}
+
+let G_ITEMS = [];
+function renderCard(items, showCorrection){
+  G = {sel:{}, tags:{}, cur:{}, ord:{}, asc:{}, pick:null};
+  G_ITEMS = items;
+  const first = items[0] || {};
+  const cons = first.cons ? `<div class="g-cons">${fmt(first.cons)}</div>` : '';
+  let bank = first.bank ? `<div class="g-bank">Banque : ${first.bank.map((b, j) => `<span id="g-bank-${j}">${esc(b)}</span>`).join('')}</div>` : '';
+  if(first.k === 'assoc' && !showCorrection) bank = renderPool(items);
+  const blocks = items.map((it, i) => {
+    const label = items.length > 1 ? `<div class="item-label${it.lab && it.lab.length > 1 ? ' wide' : ''}" id="item-label-${i}">${it.lab || lettre(i)}</div>` : '';
+    const compact = it.k === 'tag' && it.cats.length === 1 ? ' compact' : '';
+    return `<div class="item-block g-item g-${it.k}${compact}" id="g-item-${i}">${label}<div class="g-body">${renderItem(it, i, showCorrection)}</div></div>`;
+  });
+  return `<div class="g-card">${cons}${bank}<div class="g-items${items.length === 1 ? ' single' : ''}">${blocks.join('')}</div></div>`;
+}
+
+// ---------------------------------------------------------------- interactions
+// mises à jour ciblées (pas de nouvel appel à renderCard : on ne perd ni les
+// saisies des autres items ni les couleurs de vérification)
+function rerenderItem(i){
+  const body = document.querySelector(`#g-item-${i} .g-body`);
+  if(body) body.innerHTML = renderItem(G_ITEMS[i], i, false);
+  const blk = document.getElementById(`g-item-${i}`);
+  if(blk) blk.classList.remove('ok', 'ko');
+}
+function refreshUnique(except){
+  // banque en haut de carte : mots déjà placés barrés
+  const used = new Set(G_ITEMS.map((it, k) => it.unique ? G.sel[k] : undefined).filter(x => x !== undefined));
+  (G_ITEMS[0] && G_ITEMS[0].bank || []).forEach((b, j) => {
+    const el = document.getElementById(`g-bank-${j}`);
+    if(el) el.classList.toggle('used', used.has(j));
+  });
+  // met à jour les autres phrases (mots grisés) sans toucher à leurs couleurs juste/faux
+  G_ITEMS.forEach((it, k) => {
+    if(k === except || !it.unique) return;
+    const body = document.querySelector(`#g-item-${k} .g-body`);
+    if(body) body.innerHTML = renderItem(it, k, false);
+  });
+}
+function gPick(i, j){
+  const it = G_ITEMS[i];
+  if(it.unique && G.sel[i] === j){ delete G.sel[i]; }   // reclic : le mot est libéré
+  else G.sel[i] = j;
+  rerenderItem(i);
+  if(it.unique) refreshUnique(i);
+}
+function gPen(i, ci){ G.cur[i] = ci; rerenderItem(i); }
+function gTag(i, k){
+  const cats = G_ITEMS[i].cats;
+  const ci = cats.length > 1 ? G.cur[i] : 0;
+  G.tags[i][k] = (G.tags[i][k] === ci) ? -1 : ci;
+  rerenderItem(i);
+}
+function gTile(i, j){ G.ord[i].push(j); rerenderItem(i); }
+function gUnTile(i, p){ G.ord[i].splice(p, 1); rerenderItem(i); }
+
+// ---------------------------------------------------------------- vérification
+function textValue(i){
+  const el = document.getElementById(`g-text-${i}`);
+  return el ? el.value : '';
+}
+function markField(i, ok){
+  const el = document.getElementById(`g-text-${i}`);
+  if(el){ el.classList.remove('correct', 'incorrect'); el.classList.add(ok ? 'correct' : 'incorrect'); }
+}
+function checkSubj(it, v){
+  const s = norm(v);
+  if(it.ans.some(a => norm(a) === s)) return true;
+  // pred[0] = fin de phrase au singulier, pred[1] = au pluriel (accord sujet-verbe contrôlé)
+  const PLUR = ['les','des','mes','tes','ses','nos','vos','leurs','ces','deux','trois','quatre','plusieurs','quelques'];
+  for(let pi = 0; pi < it.pred.length; pi++){
+    const pp = norm(it.pred[pi]);
+    if(s.length > pp.length + 1 && s.endsWith(' ' + pp)){
+      const subj = s.slice(0, s.length - pp.length - 1).trim();
+      const ws = subj.toLowerCase().split(' ');
+      const plural = PLUR.includes(ws[0]) || ws.includes('et') || ['ils','elles','nous','vous'].includes(ws[0]);
+      const sameForm = norm(it.pred[0]) === norm(it.pred[it.pred.length - 1]);
+      const agrees = sameForm || (plural ? pi === 1 : pi === 0);
+      if(/^[A-ZÀÂÉÈÊÎÔÛÇ]/.test(subj) && ws.length <= 5 && !/^(qui|qu'est)/i.test(subj) && agrees) return true;
+    }
+  }
+  return false;
+}
+function checkGrow(it, v, i){
+  const s = norm(v);
+  if(!s) return false;
+  const base = wordsOf(it.base), got = wordsOf(s);
+  if(!/^[A-ZÀÂÉÈÊÎÔÛÇ]/.test(s)) return false;
+  if(got[got.length-1] !== base[base.length-1]) return false;      // même ponctuation finale
+  if(!isSubseq(base, got)) return false;
+  const add = got.length - base.length;
+  if(add < it.min || add > it.max) return false;
+  if(it.de && !got.some(w => ['de', 'du', 'des', "d'"].includes(w))) return false;
+  if(it.from !== undefined){
+    const prev = textValue(it.from);
+    if(prev && checkGrow(G_ITEMS[it.from], prev, it.from) && !isSubseq(wordsOf(prev), got)) return false;
+  }
+  return true;
+}
+function checkOne(it, i){
+  if(it.k === 'choice'){
+    const sel = G.sel[i];
+    return sel === it.ans || (it.alt || []).includes(sel);
+  }
+  if(it.k === 'tag'){
+    const tags = G.tags[i] || it.toks.map(() => -1);
+    const ok = it.toks.every((t, k) => !t.w || tags[k] === it.ans[k]);
+    it.toks.forEach((t, k) => {
+      const el = document.getElementById(`g-w-${i}-${k}`);
+      if(!el || !t.w) return;
+      el.classList.remove('wrong');
+      if(tags[k] !== it.ans[k] && tags[k] !== -1) el.classList.add('wrong');
+    });
+    return ok;
+  }
+  if(it.k === 'assoc'){
+    const placed = G.asc[i] === it.ans;
+    G.ascOk = G.ascOk || {}; G.ascOk[i] = placed;
+    const z = document.getElementById(`g-drop-${i}`);
+    if(z){ z.classList.remove('good', 'bad'); z.classList.add(placed ? 'good' : 'bad'); }
+    const copied = norm(textValue(i)) === norm(it.show);
+    markField(i, copied);
+    return placed && copied;
+  }
+  if(it.k === 'order'){
+    const got = (G.ord[i] || []).map(j => it.tiles[j]).join(' ');
+    return norm(got) === norm(it.ans);
+  }
+  const v = textValue(i);
+  let ok = false;
+  if(it.k === 'text') ok = it.ans.some(a => norm(a) === norm(v));
+  else if(it.k === 'subj') ok = checkSubj(it, v);
+  else if(it.k === 'grow') ok = checkGrow(it, v, i);
+  markField(i, ok);
+  return ok;
+}
+// État de la carte affichée, pour retenir l'élève tant qu'il reste des erreurs
+let G_STATUS = {idx: -1, ok: false, tried: false};
+function resetItem(it, i){
+  // efface la réponse fausse pour que l'élève la refasse (les réponses justes restent)
+  if(it.k === 'tag'){ G.tags[i] = it.toks.map(() => -1); }
+  else if(it.k === 'choice'){ delete G.sel[i]; }
+  else if(it.k === 'order'){ G.ord[i] = []; }
+  else if(it.k === 'assoc'){
+    if(G.asc[i] !== it.ans){ delete G.asc[i]; rerenderAssoc(); }
+    return;   // la phrase recopiée reste (surlignée si fausse)
+  }
+  else return;   // phrases écrites : on garde le texte (surligné en rouge) pour le corriger
+  const body = document.querySelector(`#g-item-${i} .g-body`);
+  if(body) body.innerHTML = renderItem(it, i, false);
+}
+function checkCard(items){
+  const res = items.map((it, i) => {
+    const ok = checkOne(it, i);
+    if(!ok) resetItem(it, i);
+    const blk = document.getElementById(`g-item-${i}`);
+    if(blk){ blk.classList.remove('ok', 'ko'); blk.classList.add(ok ? 'ok' : 'ko'); }
+    return ok;
+  });
+  if(items.some(it => it.unique)) refreshUnique(-1);   // mots libérés par les réponses effacées
+  G_STATUS = {idx: cardIdx, ok: res.every(r => r), tried: true};
+  return res;
+}
+// appelé par le moteur avant de changer de carte (sauf en mode enseignant)
+function beforeLeaveCard(){
+  if(G_STATUS.idx === cardIdx && G_STATUS.ok) return true;
+  const msg = (G_STATUS.idx === cardIdx && G_STATUS.tried)
+    ? "Il reste des erreurs sur cette carte : les réponses fausses ont été effacées pour que tu les refasses.\n\nVeux-tu quand même passer à une autre carte ?"
+    : "Tu n'as pas encore vérifié tes réponses sur cette carte.\n\nVeux-tu quand même passer à une autre carte ?";
+  return confirm(msg);
+}
+
+
+// ============================================================
+// Moteur generique (ceci ne change pas d'une discipline a l'autre)
+// ============================================================
+const CARDS = [{"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Karim joue au foot.", "opts": ["affirmative", "négative"], "ans": 0, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Elle ne dort jamais tard.", "opts": ["affirmative", "négative"], "ans": 1}, {"k": "choice", "q": "La neige tombe.", "opts": ["affirmative", "négative"], "ans": 0}]}, {"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Toi et moi aimons lire.", "opts": ["affirmative", "négative"], "ans": 0, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Elle n'écoute pas la maîtresse.", "opts": ["affirmative", "négative"], "ans": 1}, {"k": "choice", "q": "La lune brille.", "opts": ["affirmative", "négative"], "ans": 0}]}, {"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Le chat ne miaule pas.", "opts": ["affirmative", "négative"], "ans": 1, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Les enfants jouent dehors.", "opts": ["affirmative", "négative"], "ans": 0}, {"k": "choice", "q": "Demain, il ne pleuvra pas.", "opts": ["affirmative", "négative"], "ans": 1}]}, {"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Ils ne partent pas aujourd'hui.", "opts": ["affirmative", "négative"], "ans": 1, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Le coq chante.", "opts": ["affirmative", "négative"], "ans": 0}, {"k": "choice", "q": "Ne retournerez-vous pas à Londres ?", "opts": ["affirmative", "négative"], "ans": 1}]}, {"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Ma sœur adore le chocolat.", "opts": ["affirmative", "négative"], "ans": 0, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Je ne sais pas nager.", "opts": ["affirmative", "négative"], "ans": 1}, {"k": "choice", "q": "Le pompier arrose les flammes.", "opts": ["affirmative", "négative"], "ans": 0}]}, {"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Il n'aime pas les épinards.", "opts": ["affirmative", "négative"], "ans": 1, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Nous partons en vacances.", "opts": ["affirmative", "négative"], "ans": 0}, {"k": "choice", "q": "Elle ne vient jamais nous voir.", "opts": ["affirmative", "négative"], "ans": 1}]}, {"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Malo ouvre la fenêtre.", "opts": ["affirmative", "négative"], "ans": 0, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Tu n'as pas fini tes devoirs.", "opts": ["affirmative", "négative"], "ans": 1}, {"k": "choice", "q": "Les oiseaux chantent le matin.", "opts": ["affirmative", "négative"], "ans": 0}]}, {"recto": "AFFIRMATIVE OU NÉGATIVE", "verso": "FORME DE LA PHRASE", "rappel": false, "items": [{"k": "choice", "q": "N'a-t-il pas neigé ce matin ?", "opts": ["affirmative", "négative"], "ans": 1, "cons": "Pour chaque phrase, je clique sur la bonne réponse : affirmative ou négative ?"}, {"k": "choice", "q": "Le tonnerre gronde fort.", "opts": ["affirmative", "négative"], "ans": 0}, {"k": "choice", "q": "Nous n'avons plus de pain.", "opts": ["affirmative", "négative"], "ans": 1}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Écoute bien la consigne.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 3, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Pourquoi pleures-tu ?", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 1}, {"k": "choice", "q": "Les cloches sonnent.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 0}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "La lune éclaire la nuit.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 0, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Range tes jouets.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 3}, {"k": "choice", "q": "Quelle bonne surprise !", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 2}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Range ta chambre.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 3, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Quelle belle journée !", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 2}, {"k": "choice", "q": "Le chat dort sur le lit.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 0}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Quel âge as-tu ?", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 1, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Le ruisseau coule doucement.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 0}, {"k": "choice", "q": "Quelle chance tu as !", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 2}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Combien coûte ce livre ?", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 1, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Le boulanger ouvre sa boutique.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 0}, {"k": "choice", "q": "Sois prudent !", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 3}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Où vas-tu ce soir ?", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 1, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Ferme la porte.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 3}, {"k": "choice", "q": "Comme ce gâteau est bon !", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 2}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Le chien dort sur le tapis.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 0, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Est-ce que tu viens ?", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 1}, {"k": "choice", "q": "Sors tout de suite !", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 3}]}, {"recto": "IDENTIFIER LE TYPE DE PHRASE", "verso": "TYPE DE PHRASE", "rappel": false, "items": [{"k": "choice", "q": "Comme il fait froid !", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 2, "cons": "Pour chaque phrase, je clique sur son type : déclarative, interrogative, exclamative ou impérative."}, {"k": "choice", "q": "Ferme la fenêtre, s'il te plaît.", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 3}, {"k": "choice", "q": "As-tu fini tes devoirs ?", "opts": ["déclarative", "interrogative", "exclamative", "impérative"], "ans": 1}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Elle", "w": true}, {"t": "ne", "w": true}, {"t": "chante", "w": true}, {"t": "pas", "w": true}, {"t": "juste", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Tu", "w": true}, {"t": "ne", "w": true}, {"t": "comprends", "w": true}, {"t": "rien", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1]}, {"k": "tag", "toks": [{"t": "Ils", "w": true}, {"t": "n'", "w": true}, {"t": "arrivent", "w": true}, {"t": "jamais", "w": true}, {"t": "à", "w": true}, {"t": "l'", "w": true}, {"t": "heure", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1, -1]}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Ils", "w": true}, {"t": "ne", "w": true}, {"t": "jouent", "w": true}, {"t": "pas", "w": true}, {"t": "dehors", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Sami", "w": true}, {"t": "ne", "w": true}, {"t": "comprend", "w": true}, {"t": "pas", "w": true}, {"t": "la", "w": true}, {"t": "question", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}, {"k": "tag", "toks": [{"t": "Nathan", "w": true}, {"t": "n'", "w": true}, {"t": "a", "w": true}, {"t": "plus", "w": true}, {"t": "faim", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1]}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Le", "w": true}, {"t": "facteur", "w": true}, {"t": "ne", "w": true}, {"t": "passe", "w": true}, {"t": "pas", "w": true}, {"t": "aujourd'hui", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, -1, 0, 1, 0, -1, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Elle", "w": true}, {"t": "n'", "w": true}, {"t": "écoute", "w": true}, {"t": "jamais", "w": true}, {"t": "personne", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1]}, {"k": "tag", "toks": [{"t": "Nous", "w": true}, {"t": "ne", "w": true}, {"t": "voyons", "w": true}, {"t": "plus", "w": true}, {"t": "rien", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1]}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Le", "w": true}, {"t": "chat", "w": true}, {"t": "ne", "w": true}, {"t": "bouge", "w": true}, {"t": "pas", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, -1, 0, 1, 0, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Amina", "w": true}, {"t": "n'", "w": true}, {"t": "aime", "w": true}, {"t": "pas", "w": true}, {"t": "le", "w": true}, {"t": "froid", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}, {"k": "tag", "toks": [{"t": "Nous", "w": true}, {"t": "ne", "w": true}, {"t": "sortons", "w": true}, {"t": "plus", "w": true}, {"t": "le", "w": true}, {"t": "soir", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Tom", "w": true}, {"t": "n'", "w": true}, {"t": "aime", "w": true}, {"t": "pas", "w": true}, {"t": "les", "w": true}, {"t": "épinards", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Vous", "w": true}, {"t": "ne", "w": true}, {"t": "dites", "w": true}, {"t": "rien", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1]}, {"k": "tag", "toks": [{"t": "Elle", "w": true}, {"t": "ne", "w": true}, {"t": "va", "w": true}, {"t": "jamais", "w": true}, {"t": "à", "w": true}, {"t": "la", "w": true}, {"t": "piscine", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1, -1]}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Le", "w": true}, {"t": "chien", "w": true}, {"t": "n'", "w": true}, {"t": "aboie", "w": true}, {"t": "pas", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, -1, 0, 1, 0, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Farid", "w": true}, {"t": "ne", "w": true}, {"t": "ferme", "w": true}, {"t": "jamais", "w": true}, {"t": "la", "w": true}, {"t": "fenêtre", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}, {"k": "tag", "toks": [{"t": "Nous", "w": true}, {"t": "ne", "w": true}, {"t": "mangeons", "w": true}, {"t": "plus", "w": true}, {"t": "de", "w": true}, {"t": "bonbons", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Karim", "w": true}, {"t": "ne", "w": true}, {"t": "dort", "w": true}, {"t": "pas", "w": true}, {"t": "encore", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Vous", "w": true}, {"t": "ne", "w": true}, {"t": "trouvez", "w": true}, {"t": "plus", "w": true}, {"t": "vos", "w": true}, {"t": "clés", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}, {"k": "tag", "toks": [{"t": "Je", "w": true}, {"t": "ne", "w": true}, {"t": "regarde", "w": true}, {"t": "pas", "w": true}, {"t": "ce", "w": true}, {"t": "film", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}]}, {"recto": "LUNETTES DE LA NÉGATION", "verso": "PHRASE ANNOTÉE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Il", "w": true}, {"t": "ne", "w": true}, {"t": "pleut", "w": true}, {"t": "pas", "w": true}, {"t": "ce", "w": true}, {"t": "matin", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1], "cons": "Avec le crayon « négation », j'entoure les mots de la négation (les « lunettes ») ; avec le crayon « verbe », je souligne le verbe."}, {"k": "tag", "toks": [{"t": "Tu", "w": true}, {"t": "n'", "w": true}, {"t": "écoutes", "w": true}, {"t": "jamais", "w": true}, {"t": "la", "w": true}, {"t": "maîtresse", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}, {"k": "tag", "toks": [{"t": "Ils", "w": true}, {"t": "ne", "w": true}, {"t": "disent", "w": true}, {"t": "rien", "w": true}, {"t": "du", "w": true}, {"t": "tout", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "négation", "c": "#1F6FE0", "ring": true}, {"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, 1, 0, -1, -1, -1]}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Tu sais nager.", "ans": ["Tu ne sais pas nager.", "Tu ne sais jamais nager.", "Tu ne sais plus nager."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Ils regardent la télévision.", "ans": ["Ils ne regardent pas la télévision.", "Ils ne regardent jamais la télévision.", "Ils ne regardent plus la télévision."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Léa aime les fraises.", "ans": ["Léa n'aime pas les fraises.", "Léa n'aime jamais les fraises.", "Léa n'aime plus les fraises."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Il fait chaud aujourd'hui.", "ans": ["Il ne fait pas chaud aujourd'hui.", "Il ne fait jamais chaud aujourd'hui.", "Il ne fait plus chaud aujourd'hui."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Ma tante cuisine bien.", "ans": ["Ma tante ne cuisine pas bien.", "Ma tante ne cuisine jamais bien.", "Ma tante ne cuisine plus bien."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Les enfants dorment profondément.", "ans": ["Les enfants ne dorment pas profondément.", "Les enfants ne dorment jamais profondément.", "Les enfants ne dorment plus profondément."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Ils aiment le sport.", "ans": ["Ils n'aiment pas le sport.", "Ils n'aiment jamais le sport.", "Ils n'aiment plus le sport."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Mon oncle voyage souvent.", "ans": ["Mon oncle ne voyage pas souvent.", "Mon oncle ne voyage jamais souvent.", "Mon oncle ne voyage plus souvent."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Nous préparons le repas.", "ans": ["Nous ne préparons pas le repas.", "Nous ne préparons jamais le repas.", "Nous ne préparons plus le repas."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Le train arrive à l'heure.", "ans": ["Le train n'arrive pas à l'heure.", "Le train n'arrive jamais à l'heure.", "Le train n'arrive plus à l'heure."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Vous connaissez la réponse.", "ans": ["Vous ne connaissez pas la réponse.", "Vous ne connaissez jamais la réponse.", "Vous ne connaissez plus la réponse."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Le peintre termine son tableau.", "ans": ["Le peintre ne termine pas son tableau.", "Le peintre ne termine jamais son tableau.", "Le peintre ne termine plus son tableau."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Il regarde la télévision le dimanche.", "ans": ["Il ne regarde pas la télévision le dimanche.", "Il ne regarde jamais la télévision le dimanche.", "Il ne regarde plus la télévision le dimanche."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Vous partez à l'heure.", "ans": ["Vous ne partez pas à l'heure.", "Vous ne partez jamais à l'heure.", "Vous ne partez plus à l'heure."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "ÉCRIRE UNE PHRASE NÉGATIVE", "verso": "PHRASE NÉGATIVE", "rappel": false, "items": [{"k": "text", "q": "Elle lave la vaisselle le soir.", "ans": ["Elle ne lave pas la vaisselle le soir.", "Elle ne lave jamais la vaisselle le soir.", "Elle ne lave plus la vaisselle le soir."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "cons": "J'écris la phrase à la forme négative :"}, {"k": "text", "q": "Le musicien joue du piano.", "ans": ["Le musicien ne joue pas du piano.", "Le musicien ne joue jamais du piano.", "Le musicien ne joue plus du piano."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas »."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Nathan", "w": true}, {"t": "joue", "w": true}, {"t": "au", "w": true}, {"t": "tennis", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Nathan ne joue pas au tennis.", "Nathan ne joue jamais au tennis.", "Nathan ne joue plus au tennis."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Nathan joue au tennis."}, {"k": "tag", "toks": [{"t": "Vous", "w": true}, {"t": "chantez", "w": true}, {"t": "fort", "w": true}, {"t": "le", "w": true}, {"t": "matin", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Vous ne chantez pas fort le matin.", "Vous ne chantez jamais fort le matin.", "Vous ne chantez plus fort le matin."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Vous chantez fort le matin."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Nour", "w": true}, {"t": "ferme", "w": true}, {"t": "la", "w": true}, {"t": "fenêtre", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Nour ne ferme pas la fenêtre.", "Nour ne ferme jamais la fenêtre.", "Nour ne ferme plus la fenêtre."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Nour ferme la fenêtre."}, {"k": "tag", "toks": [{"t": "Elle", "w": true}, {"t": "chante", "w": true}, {"t": "juste", "w": true}, {"t": "ce", "w": true}, {"t": "soir", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Elle ne chante pas juste ce soir.", "Elle ne chante jamais juste ce soir.", "Elle ne chante plus juste ce soir."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Elle chante juste ce soir."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Zoé", "w": true}, {"t": "ferme", "w": true}, {"t": "la", "w": true}, {"t": "fenêtre", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Zoé ne ferme pas la fenêtre.", "Zoé ne ferme jamais la fenêtre.", "Zoé ne ferme plus la fenêtre."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Zoé ferme la fenêtre."}, {"k": "tag", "toks": [{"t": "Ils", "w": true}, {"t": "regardent", "w": true}, {"t": "le", "w": true}, {"t": "film", "w": true}, {"t": "ce", "w": true}, {"t": "soir", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Ils ne regardent pas le film ce soir.", "Ils ne regardent jamais le film ce soir.", "Ils ne regardent plus le film ce soir."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Ils regardent le film ce soir."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Karim", "w": true}, {"t": "boit", "w": true}, {"t": "son", "w": true}, {"t": "chocolat", "w": true}, {"t": "chaud", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Karim ne boit pas son chocolat chaud.", "Karim ne boit jamais son chocolat chaud.", "Karim ne boit plus son chocolat chaud."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Karim boit son chocolat chaud."}, {"k": "tag", "toks": [{"t": "Les", "w": true}, {"t": "élèves", "w": true}, {"t": "dorment", "w": true}, {"t": "en", "w": true}, {"t": "classe", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, -1, 0, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Les élèves ne dorment pas en classe.", "Les élèves ne dorment jamais en classe.", "Les élèves ne dorment plus en classe."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Les élèves dorment en classe."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Le", "w": true}, {"t": "vent", "w": true}, {"t": "souffle", "w": true}, {"t": "sur", "w": true}, {"t": "la", "w": true}, {"t": "côte", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, -1, 0, -1, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Le vent ne souffle pas sur la côte.", "Le vent ne souffle jamais sur la côte.", "Le vent ne souffle plus sur la côte."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Le vent souffle sur la côte."}, {"k": "tag", "toks": [{"t": "Nous", "w": true}, {"t": "partons", "w": true}, {"t": "tôt", "w": true}, {"t": "demain", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Nous ne partons pas tôt demain.", "Nous ne partons jamais tôt demain.", "Nous ne partons plus tôt demain."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Nous partons tôt demain."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Les", "w": true}, {"t": "hirondelles", "w": true}, {"t": "reviennent", "w": true}, {"t": "chaque", "w": true}, {"t": "année", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, -1, 0, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Les hirondelles ne reviennent pas chaque année.", "Les hirondelles ne reviennent jamais chaque année.", "Les hirondelles ne reviennent plus chaque année."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Les hirondelles reviennent chaque année."}, {"k": "tag", "toks": [{"t": "Tu", "w": true}, {"t": "comprends", "w": true}, {"t": "bien", "w": true}, {"t": "la", "w": true}, {"t": "leçon", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Tu ne comprends pas bien la leçon.", "Tu ne comprends jamais bien la leçon.", "Tu ne comprends plus bien la leçon."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Tu comprends bien la leçon."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Léo", "w": true}, {"t": "aboie", "w": true}, {"t": "comme", "w": true}, {"t": "un", "w": true}, {"t": "chien", "w": true}, {"t": "pour", "w": true}, {"t": "rire", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Léo n'aboie pas comme un chien pour rire.", "Léo n'aboie jamais comme un chien pour rire.", "Léo n'aboie plus comme un chien pour rire."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Léo aboie comme un chien pour rire."}, {"k": "tag", "toks": [{"t": "Malika", "w": true}, {"t": "lave", "w": true}, {"t": "la", "w": true}, {"t": "vaisselle", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Malika ne lave pas la vaisselle.", "Malika ne lave jamais la vaisselle.", "Malika ne lave plus la vaisselle."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Malika lave la vaisselle."}]}, {"recto": "TRANSFORMER ET SOULIGNER LE VERBE", "verso": "PHRASE NÉGATIVE + VERBE", "rappel": false, "items": [{"k": "tag", "toks": [{"t": "Papa", "w": true}, {"t": "lit", "w": true}, {"t": "le", "w": true}, {"t": "journal", "w": true}, {"t": "du", "w": true}, {"t": "matin", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, 0, -1, -1, -1, -1, -1], "lab": "A1", "cons": "Je souligne le verbe de la phrase (je clique dessus), puis je récris la phrase à la forme négative."}, {"k": "text", "q": "", "ans": ["Papa ne lit pas le journal du matin.", "Papa ne lit jamais le journal du matin.", "Papa ne lit plus le journal du matin."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "A2", "hint": "Je récris la phrase A1 à la forme négative :", "src": "Papa lit le journal du matin."}, {"k": "tag", "toks": [{"t": "Ma", "w": true}, {"t": "sœur", "w": true}, {"t": "aime", "w": true}, {"t": "le", "w": true}, {"t": "sport", "w": true}, {"t": "collectif", "w": true}, {"t": ".", "w": false}], "cats": [{"n": "verbe", "c": "#C0392B"}], "ans": [-1, -1, 0, -1, -1, -1, -1], "lab": "B1"}, {"k": "text", "q": "", "ans": ["Ma sœur n'aime pas le sport collectif.", "Ma sœur n'aime jamais le sport collectif.", "Ma sœur n'aime plus le sport collectif."], "note": "On accepte aussi « ne … jamais » et « ne … plus » à la place de « ne … pas ».", "lab": "B2", "hint": "Je récris la phrase B1 à la forme négative :", "src": "Ma sœur aime le sport collectif."}]}];
+const ITEM_LABEL = "ITEM";
+const PAGE_TITLE = "Ceinture Rose";
+const TEACHER_EMAIL = "euryale_tsipora@protonmail.me";
+const TEACHER_PIN = "0616";
+const EMAIL_ENABLED = false; // desactive temporairement l'ouverture de la messagerie en fin de seance ; le PDF continue d'etre genere et telecharge normalement
+const DISCIPLINE = "grammaire";
+const MSG_ALL_OK = "Bravo, tout est juste !";
+const MSG_SOME_OK = "Une partie est juste — refais les réponses encadrées en rouge, puis vérifie à nouveau.";
+const MSG_NONE_OK = "Pas encore juste — corrige et réessaie.";
+const SESSION_STORAGE_KEY = 'grammaire_sessionLog';
+const NAME_STORAGE_KEY = 'grammaire_studentName';
+let cardIdx = 0;
+let showingCorrection = false;
+let teacherMode = false;
+let hasAttemptedCurrent = false;
+
+// La seance est memorisee dans le navigateur (localStorage) pour survivre a un
+// changement de page (une ceinture = un fichier different) : sans ca, tout ce
+// qui a ete fait sur une ceinture visitee avant celle-ci serait perdu au moment
+// du PDF final. Repli silencieux sur une seance vide si localStorage est
+// indisponible (navigation privee, restrictions navigateur...).
+function chargerSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+function sauverSession(){
+  try { localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionLog)); } catch(e) {}
+}
+function chargerNomEleve(){
+  const injecte = "";
+  if(injecte) return injecte; // fiche personnalisee : le nom est deja connu, prioritaire
+  try { return localStorage.getItem(NAME_STORAGE_KEY) || ""; } catch(e) { return ""; }
+}
+function sauverNomEleve(){
+  try { localStorage.setItem(NAME_STORAGE_KEY, studentName); } catch(e) {}
+}
+function viderSession(){
+  try { localStorage.removeItem(SESSION_STORAGE_KEY); localStorage.removeItem(NAME_STORAGE_KEY); } catch(e) {}
+  sessionLog = [];
+}
+
+let sessionLog = chargerSession(); // {belt, carte, ok, results}
+let studentName = chargerNomEleve();
+
+function updateSessionScore(){
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  document.getElementById('session-score').textContent = `Séance : ${ok}/${total}`;
+}
+
+function render(){
+  showingCorrection = false;
+  hasAttemptedCurrent = false;
+  updateCalcArea();
+  document.getElementById('progress-btn').textContent = `Carte ${cardIdx+1} / ${CARDS.length}`;
+}
+
+function updateCalcArea(){
+  const card = CARDS[cardIdx];
+  const beltTag = card.belt_name
+    ? `<span class="belt-origin-tag" style="background:${card.belt_color};">${card.belt_name}</span>`
+    : '';
+  document.getElementById('carte-indicator').innerHTML =
+    `CARTE ${cardIdx+1}` + beltTag + (card.rappel ? '<span class="rappel-tag">(rappel)</span>' : '');
+  document.getElementById('palier-label').innerHTML = showingCorrection ? card.verso : card.recto;
+  document.getElementById('calc-area').innerHTML = renderCard(card.items, showingCorrection);
+  document.getElementById('feedback-msg').textContent = '';
+  document.getElementById('feedback-msg').className = '';
+  document.getElementById('btn-verifier').style.display = showingCorrection ? 'none' : '';
+  refreshCorrectionButton();
+}
+
+function refreshCorrectionButton(){
+  const btnCorrection = document.getElementById('btn-correction');
+  const locked = !teacherMode && !hasAttemptedCurrent && !showingCorrection;
+  btnCorrection.disabled = locked;
+  btnCorrection.title = locked ? "Vérifie d'abord ta réponse pour débloquer la correction" : "";
+  btnCorrection.textContent = locked
+    ? '🔒 Vérifie ta réponse d\'abord'
+    : (showingCorrection ? 'Retour à l\'énoncé (espace)' : 'Voir la correction (espace)');
+}
+
+function verifierReponse(){
+  const card = CARDS[cardIdx];
+  if(typeof checkCard === 'function'){
+    const results = checkCard(card.items); // tableau de booleens, un par calcul de la carte
+    const allOk = results.every(r => r);
+    const msg = document.getElementById('feedback-msg');
+    if(allOk){
+      msg.textContent = MSG_ALL_OK;
+    } else if(results.some(r => r)){
+      msg.textContent = MSG_SOME_OK;
+    } else {
+      msg.textContent = MSG_NONE_OK;
+    }
+    msg.className = allOk ? 'ok' : 'ko';
+    results.forEach((ok, i) => {
+      const label = document.getElementById(`item-label-${i}`);
+      if(label){
+        label.classList.remove('correct', 'incorrect');
+        label.classList.add(ok ? 'correct' : 'incorrect');
+      }
+    });
+    hasAttemptedCurrent = true;
+    const beltLabel = card.belt_name || PAGE_TITLE;
+    sessionLog.push({belt: beltLabel, carte: cardIdx+1, ok: allOk, results: results});
+    sauverSession();
+    updateSessionScore();
+    refreshCorrectionButton();
+  }
+}
+
+function toggleTeacherMode(){
+  if(teacherMode){
+    teacherMode = false;
+    document.getElementById('btn-mode').textContent = '👤 Élève';
+    document.getElementById('btn-mode').classList.remove('teacher');
+  } else {
+    const code = prompt("Code enseignant :");
+    if(code === null) return;
+    if(code === TEACHER_PIN){
+      teacherMode = true;
+      document.getElementById('btn-mode').textContent = '🔓 Enseignant';
+      document.getElementById('btn-mode').classList.add('teacher');
+    } else {
+      alert("Code incorrect.");
+      return;
+    }
+  }
+  refreshCorrectionButton();
+}
+
+const LETTRES = ['A','B','C','D','E','F'];
+
+function terminerSeance(){
+  if(sessionLog.length === 0){
+    alert("Aucune vérification n'a encore été faite pendant cette séance.");
+    return;
+  }
+  if(!studentName){
+    const saisie = prompt("Quel est ton prénom ?");
+    if(!saisie){ alert("Le prénom est nécessaire pour enregistrer la séance."); return; }
+    studentName = saisie.trim();
+    sauverNomEleve();
+  }
+
+  const total = sessionLog.length;
+  const ok = sessionLog.filter(e => e.ok).length;
+  const dateStr = new Date().toLocaleDateString('fr-FR');
+  const heureStr = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+  const titreComplet = `${studentName} — ${dateStr}`;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(`Séance de ${DISCIPLINE} — ${titreComplet}`, 14, 18);
+  doc.setFontSize(11);
+  doc.text(`Date : ${dateStr} à ${heureStr}`, 14, 28);
+  doc.text(`Score de la séance : ${ok} / ${total}`, 14, 36);
+  doc.text("Détail (toutes ceintures travaillées pendant la séance) :", 14, 46);
+  let y = 54;
+  sessionLog.forEach((e, i) => {
+    if(y > 280){ doc.addPage(); y = 20; }
+    const detail = e.results
+      ? e.results.map((r, k) => `${LETTRES[k] || (k+1)}:${r ? 'juste' : 'à revoir'}`).join('  ')
+      : (e.ok ? 'juste' : 'à revoir');
+    doc.text(`${i+1}. ${e.belt} — Carte ${e.carte} — ${detail}`, 18, y);
+    y += 7;
+  });
+
+  const slug = studentName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,'_');
+  const fname = `seance_${slug}_${dateStr.replace(/\//g,'-')}.pdf`;
+  doc.save(fname);
+
+  if(EMAIL_ENABLED){
+    const sujet = encodeURIComponent(`Séance ${DISCIPLINE} — ${titreComplet}`);
+    const corps = encodeURIComponent(
+      `Bonjour,\n\nVoici le résumé de séance de ${studentName} du ${dateStr} à ${heureStr}.\n` +
+      `Score : ${ok}/${total}.\n\nLe fichier "${fname}" vient d'être téléchargé — merci de le joindre à cet e-mail avant de l'envoyer.\n`
+    );
+    const mailto = `mailto:${TEACHER_EMAIL}?subject=${sujet}&body=${corps}`;
+    window.location.href = mailto;
+  } else {
+    alert(`Séance enregistrée ! Le fichier "${fname}" vient d'être téléchargé.`);
+  }
+
+  viderSession();
+  studentName = "";
+  updateSessionScore();
+}
+
+function toggleCorrection(){
+  if(!teacherMode && !hasAttemptedCurrent && !showingCorrection) return; // verrouille tant que non tente
+  showingCorrection = !showingCorrection;
+  updateCalcArea();
+}
+// Crochet optionnel fourni par la discipline : beforeLeaveCard() renvoie false
+// pour retenir l'élève sur la carte (ex. erreurs non corrigées) quand il passe
+// à la carte suivante/précédente (flèches). Pas appliqué au cadre « Aller à la
+// carte… », qui est un choix volontaire. Absent pour le
+// calcul posé -> comportement inchangé. Jamais appliqué en mode enseignant.
+function mayLeaveCard(){
+  return teacherMode || typeof beforeLeaveCard !== 'function' || beforeLeaveCard();
+}
+function go(delta){
+  if(!mayLeaveCard()) return;
+  cardIdx = (cardIdx + delta + CARDS.length) % CARDS.length;
+  render();
+}
+function goTo(n){
+  // choix volontaire dans le cadre « Aller à la carte… » : pas d'avertissement
+  cardIdx = Math.max(0, Math.min(CARDS.length-1, n-1));
+  render();
+  closePicker();
+}
+
+function openPicker(){
+  const grid = document.getElementById('picker-grid');
+  grid.innerHTML = '';
+  CARDS.forEach((card, i) => {
+    const b = document.createElement('button');
+    b.textContent = i+1;
+    if(i === cardIdx) b.classList.add('current');
+    b.onclick = () => goTo(i+1);
+    grid.appendChild(b);
+  });
+  document.getElementById('overlay').classList.add('show');
+}
+function closePicker(){ document.getElementById('overlay').classList.remove('show'); }
+
+document.getElementById('progress-btn').onclick = openPicker;
+document.getElementById('picker-close').onclick = closePicker;
+document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closePicker(); };
+document.getElementById('picker-go').onclick = ()=>{
+  const v = parseInt(document.getElementById('picker-input').value);
+  if(v) goTo(v);
+};
+document.getElementById('prev').onclick = ()=>go(-1);
+document.getElementById('next').onclick = ()=>go(1);
+document.getElementById('btn-correction').onclick = toggleCorrection;
+document.getElementById('btn-verifier').onclick = verifierReponse;
+document.getElementById('btn-fin-seance').onclick = terminerSeance;
+document.getElementById('btn-mode').onclick = toggleTeacherMode;
+document.addEventListener('keydown', (e)=>{
+  if(document.getElementById('overlay').classList.contains('show')) return;
+  // pendant la saisie dans un champ, l'espace et les flèches servent à écrire,
+  // pas à basculer la correction ni à changer de carte
+  const t = e.target;
+  if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if(e.key === 'ArrowRight') go(1);
+  else if(e.key === 'ArrowLeft') go(-1);
+  else if(e.key === ' '){ e.preventDefault(); toggleCorrection(); }
+});
+
+render();
+updateSessionScore();
+</script>
+</body>
+</html>
